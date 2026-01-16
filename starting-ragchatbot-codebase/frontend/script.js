@@ -38,6 +38,12 @@ function setupEventListeners() {
             sendMessage();
         });
     });
+
+    // New chat button handler
+    const newChatButton = document.getElementById('newChatButton');
+    newChatButton.addEventListener('click', async () => {
+        await createNewSession();
+    });
 }
 
 
@@ -120,12 +126,21 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     const displayContent = type === 'assistant' ? marked.parse(content) : escapeHtml(content);
     
     let html = `<div class="message-content">${displayContent}</div>`;
-    
+
     if (sources && sources.length > 0) {
+        // Map sources to styled badges/chips
+        const sourceChips = sources.map(source => {
+            const chipContent = `<span class="source-chip-text">${source.text}</span>`;
+            if (source.url) {
+                return `<a href="${source.url}" target="_blank" rel="noopener noreferrer" class="source-chip source-chip-link">${chipContent}</a>`;
+            }
+            return `<span class="source-chip">${chipContent}</span>`;
+        });
+
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${sourceChips.join('')}</div>
             </details>
         `;
     }
