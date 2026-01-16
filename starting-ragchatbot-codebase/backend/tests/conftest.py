@@ -308,3 +308,58 @@ def mock_final_response_after_tool():
 
     mock_response.content = [text_block]
     return mock_response
+
+
+# ============================================================================
+# Multi-Round Tool Calling Fixtures
+# ============================================================================
+
+@pytest.fixture
+def mock_second_tool_use_response():
+    """
+    Mock Anthropic API response for second tool call in a sequence.
+
+    Simulates Claude making a second tool call after reviewing first results.
+
+    Returns:
+        Mock: Response object with stop_reason="tool_use" for second tool
+    """
+    mock_response = Mock()
+    mock_response.stop_reason = "tool_use"
+
+    tool_block = Mock()
+    tool_block.type = "tool_use"
+    tool_block.id = "toolu_02SECOND"
+    tool_block.name = "search_course_content"
+    tool_block.input = {
+        "query": "lesson 2 content",
+        "lesson_number": 2
+    }
+
+    mock_response.content = [tool_block]
+    return mock_response
+
+
+@pytest.fixture
+def mock_comparison_final_response():
+    """
+    Mock final response after two sequential tool calls.
+
+    Simulates Claude synthesizing comparison after getting two pieces of info.
+
+    Returns:
+        Mock: Response with synthesized comparison
+    """
+    mock_response = Mock()
+    mock_response.stop_reason = "end_turn"
+
+    text_block = Mock()
+    text_block.type = "text"
+    text_block.text = (
+        "Based on the course materials:\n"
+        "Lesson 1 focuses on X, while Lesson 2 covers Y. "
+        "The main difference is Z."
+    )
+
+    mock_response.content = [text_block]
+    return mock_response
