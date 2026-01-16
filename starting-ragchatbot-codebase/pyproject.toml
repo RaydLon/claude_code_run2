@@ -22,6 +22,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "pre-commit>=3.6.0",
+    "httpx>=0.27.0",  # Required for FastAPI TestClient
 ]
 
 [tool.black]
@@ -67,11 +68,31 @@ check_untyped_defs = true
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
+# Test discovery
 testpaths = ["backend/tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=backend --cov-report=html --cov-report=term-missing"
+
+# Output options
+addopts = [
+    "-v",                    # Verbose output
+    "--strict-markers",      # Strict marker enforcement
+    "--tb=short",           # Shorter traceback format
+    "--disable-warnings",   # Suppress warnings for cleaner output
+    "-ra",                  # Show summary of all test outcomes
+    "--cov=backend",        # Coverage for backend
+    "--cov-report=html",    # HTML coverage report
+    "--cov-report=term-missing",  # Terminal coverage report
+]
+
+# Markers for test categorization
+markers = [
+    "unit: Unit tests for individual components",
+    "integration: Integration tests across components",
+    "api: API endpoint tests",
+    "slow: Tests that take significant time to run",
+]
 
 [tool.coverage.run]
 source = ["backend"]
