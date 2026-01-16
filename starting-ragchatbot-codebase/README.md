@@ -54,3 +54,50 @@ The application will be available at:
 - Web Interface: `http://localhost:8000`
 - API Documentation: `http://localhost:8000/docs`
 
+## Development
+
+This project uses modern code quality tools to maintain consistent formatting and catch potential issues.
+
+### Setup Development Environment
+
+Install development dependencies:
+```bash
+uv sync --extra dev
+```
+
+This installs Black (formatter), Ruff (linter), mypy (type checker), pytest (testing), and pre-commit (optional hooks).
+
+### Code Quality Scripts
+
+Run quality checks using the provided scripts:
+
+```bash
+# Run all quality checks (recommended before committing)
+./scripts/quality.sh
+
+# Individual tools
+./scripts/format.sh      # Format code with Black
+./scripts/lint.sh        # Lint with Ruff (auto-fix)
+./scripts/typecheck.sh   # Type check with mypy
+./scripts/test.sh        # Run tests with coverage
+```
+
+### Testing
+
+Tests are located in `backend/tests/`. Run tests with coverage:
+```bash
+./scripts/test.sh
+```
+
+View coverage report:
+```bash
+open htmlcov/index.html
+```
+
+### Optional Pre-commit Hooks
+
+Automatically run quality checks before each commit:
+```bash
+uv run pre-commit install
+```
+

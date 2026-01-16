@@ -8,17 +8,17 @@ This module provides:
 - Mock objects for Anthropic API responses
 """
 
-import pytest
 from unittest.mock import Mock
-from config import Config
-from vector_store import VectorStore
-from search_tools import CourseSearchTool, CourseOutlineTool, ToolManager
-from ai_generator import AIGenerator
 
+import pytest
+from config import Config
+from search_tools import CourseSearchTool, ToolManager
+from vector_store import VectorStore
 
 # ============================================================================
 # Configuration Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def buggy_config():
@@ -39,7 +39,7 @@ def buggy_config():
         CHUNK_OVERLAP=100,
         MAX_RESULTS=0,  # THE BUG
         MAX_HISTORY=2,
-        CHROMA_PATH="./chroma_db"
+        CHROMA_PATH="./chroma_db",
     )
 
 
@@ -62,13 +62,14 @@ def working_config():
         CHUNK_OVERLAP=100,
         MAX_RESULTS=5,  # THE FIX
         MAX_HISTORY=2,
-        CHROMA_PATH="./chroma_db"
+        CHROMA_PATH="./chroma_db",
     )
 
 
 # ============================================================================
 # VectorStore Fixtures (Using Real ChromaDB)
 # ============================================================================
+
 
 @pytest.fixture
 def buggy_vector_store(buggy_config):
@@ -84,7 +85,7 @@ def buggy_vector_store(buggy_config):
     return VectorStore(
         chroma_path=buggy_config.CHROMA_PATH,
         embedding_model=buggy_config.EMBEDDING_MODEL,
-        max_results=buggy_config.MAX_RESULTS
+        max_results=buggy_config.MAX_RESULTS,
     )
 
 
@@ -102,13 +103,14 @@ def working_vector_store(working_config):
     return VectorStore(
         chroma_path=working_config.CHROMA_PATH,
         embedding_model=working_config.EMBEDDING_MODEL,
-        max_results=working_config.MAX_RESULTS
+        max_results=working_config.MAX_RESULTS,
     )
 
 
 # ============================================================================
 # Tool Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def buggy_course_search_tool(buggy_vector_store):
@@ -162,6 +164,7 @@ def tool_manager_with_working_tool(working_course_search_tool):
 # Test Data Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def sample_queries():
     """
@@ -177,7 +180,7 @@ def sample_queries():
         "specific_topic": "prompt caching",
         "technical_term": "embeddings",
         "course_specific": "Anthropic models",
-        "lesson_specific": "introduction to course"
+        "lesson_specific": "introduction to course",
     }
 
 
@@ -197,7 +200,7 @@ def expected_courses():
             "instructor": "Colt Steele",
             "lesson_count": 7,
             "has_lesson_0": True,
-            "has_lesson_1": True
+            "has_lesson_1": True,
         }
     }
 
@@ -214,13 +217,14 @@ def course_name_variations():
     """
     return {
         "computer use": "Building Towards Computer Use with Anthropic",
-        "Building Toward": "Building Towards Computer Use with Anthropic"
+        "Building Toward": "Building Towards Computer Use with Anthropic",
     }
 
 
 # ============================================================================
 # Mock Anthropic API Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def mock_anthropic_client():
@@ -254,9 +258,7 @@ def mock_tool_use_response():
     tool_block.type = "tool_use"
     tool_block.id = "toolu_01A09q90qw90lq917835lq9"
     tool_block.name = "search_course_content"
-    tool_block.input = {
-        "query": "computer use"
-    }
+    tool_block.input = {"query": "computer use"}
 
     mock_response.content = [tool_block]
     return mock_response
@@ -314,6 +316,7 @@ def mock_final_response_after_tool():
 # Multi-Round Tool Calling Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mock_second_tool_use_response():
     """
@@ -331,10 +334,7 @@ def mock_second_tool_use_response():
     tool_block.type = "tool_use"
     tool_block.id = "toolu_02SECOND"
     tool_block.name = "search_course_content"
-    tool_block.input = {
-        "query": "lesson 2 content",
-        "lesson_number": 2
-    }
+    tool_block.input = {"query": "lesson 2 content", "lesson_number": 2}
 
     mock_response.content = [tool_block]
     return mock_response

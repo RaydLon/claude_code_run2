@@ -9,18 +9,11 @@ Test Strategy:
 - Tests verify working tool returns formatted results with sources
 """
 
-import pytest
-from search_tools import CourseSearchTool
-
 
 class TestCourseSearchToolBasicExecution:
     """Test basic tool execution with different configs."""
 
-    def test_buggy_tool_returns_no_content_message(
-        self,
-        buggy_course_search_tool,
-        sample_queries
-    ):
+    def test_buggy_tool_returns_no_content_message(self, buggy_course_search_tool, sample_queries):
         """
         Bug: Tool returns "No relevant content found" due to MAX_RESULTS=0.
 
@@ -30,18 +23,15 @@ class TestCourseSearchToolBasicExecution:
         result = buggy_course_search_tool.execute(query=query)
 
         # Bug causes tool to return empty message
-        assert "No relevant content found" in result, (
-            "Buggy tool should return 'No relevant content found'"
-        )
+        assert (
+            "No relevant content found" in result
+        ), "Buggy tool should return 'No relevant content found'"
 
         # No sources tracked
         assert len(buggy_course_search_tool.last_sources) == 0
 
-
     def test_working_tool_returns_formatted_results(
-        self,
-        working_course_search_tool,
-        sample_queries
+        self, working_course_search_tool, sample_queries
     ):
         """
         Fix: Tool returns properly formatted results with course context.
@@ -74,9 +64,7 @@ class TestCourseSearchToolWithFilters:
     """Test tool execution with course and lesson filters."""
 
     def test_working_tool_with_course_name_filter(
-        self,
-        working_course_search_tool,
-        expected_courses
+        self, working_course_search_tool, expected_courses
     ):
         """
         Test tool filtering by course name.
@@ -85,10 +73,7 @@ class TestCourseSearchToolWithFilters:
         Expected: PASSES with working config
         """
         course_title = expected_courses["building_computer_use"]["title"]
-        result = working_course_search_tool.execute(
-            query="computer use",
-            course_name=course_title
-        )
+        result = working_course_search_tool.execute(query="computer use", course_name=course_title)
 
         assert "No relevant content found" not in result
         assert course_title in result, "Result should mention the course title"
@@ -97,11 +82,8 @@ class TestCourseSearchToolWithFilters:
         for source in working_course_search_tool.last_sources:
             assert course_title in source["text"]
 
-
     def test_working_tool_with_lesson_number_filter(
-        self,
-        working_course_search_tool,
-        expected_courses
+        self, working_course_search_tool, expected_courses
     ):
         """
         Test tool filtering by lesson number.
@@ -111,9 +93,7 @@ class TestCourseSearchToolWithFilters:
         """
         course_title = expected_courses["building_computer_use"]["title"]
         result = working_course_search_tool.execute(
-            query="introduction",
-            course_name=course_title,
-            lesson_number=0
+            query="introduction", course_name=course_title, lesson_number=0
         )
 
         assert "No relevant content found" not in result
@@ -123,11 +103,8 @@ class TestCourseSearchToolWithFilters:
         for source in working_course_search_tool.last_sources:
             assert "Lesson 0" in source["text"]
 
-
     def test_working_tool_with_fuzzy_course_name(
-        self,
-        working_course_search_tool,
-        course_name_variations
+        self, working_course_search_tool, course_name_variations
     ):
         """
         Test tool handles fuzzy course name matching.
@@ -138,28 +115,20 @@ class TestCourseSearchToolWithFilters:
         partial_name = "computer use"
         expected_title = course_name_variations[partial_name]
 
-        result = working_course_search_tool.execute(
-            query="introduction",
-            course_name=partial_name
-        )
+        result = working_course_search_tool.execute(query="introduction", course_name=partial_name)
 
         assert "No relevant content found" not in result
         # Should resolve to full course title
         assert expected_title in result
 
-
-    def test_tool_with_nonexistent_course_returns_error(
-        self,
-        working_course_search_tool
-    ):
+    def test_tool_with_nonexistent_course_returns_error(self, working_course_search_tool):
         """
         Test tool returns appropriate error for non-existent course.
 
         Expected: PASSES with both configs
         """
         result = working_course_search_tool.execute(
-            query="test",
-            course_name="Nonexistent Course XYZ123"
+            query="test", course_name="Nonexistent Course XYZ123"
         )
 
         assert "No course found" in result, "Should return course not found error"
@@ -169,10 +138,7 @@ class TestCourseSearchToolWithFilters:
 class TestCourseSearchToolResultFormatting:
     """Test the formatting of tool results for Claude."""
 
-    def test_working_tool_formats_with_course_context(
-        self,
-        working_course_search_tool
-    ):
+    def test_working_tool_formats_with_course_context(self, working_course_search_tool):
         """
         Test that results include proper course and lesson context headers.
 
@@ -197,11 +163,7 @@ class TestCourseSearchToolResultFormatting:
         for header in header_lines:
             assert header.startswith("[") and "]" in header
 
-
-    def test_working_tool_separates_multiple_results(
-        self,
-        working_course_search_tool
-    ):
+    def test_working_tool_separates_multiple_results(self, working_course_search_tool):
         """
         Test that multiple search results are properly separated.
 
@@ -220,10 +182,7 @@ class TestCourseSearchToolResultFormatting:
 class TestCourseSearchToolSourceTracking:
     """Test that tool properly tracks sources for UI display."""
 
-    def test_working_tool_tracks_sources(
-        self,
-        working_course_search_tool
-    ):
+    def test_working_tool_tracks_sources(self, working_course_search_tool):
         """
         Test that last_sources attribute is populated correctly.
 
@@ -247,11 +206,8 @@ class TestCourseSearchToolSourceTracking:
             # URL should be None or valid string
             assert source["url"] is None or isinstance(source["url"], str)
 
-
     def test_working_tool_includes_lesson_links_in_sources(
-        self,
-        working_course_search_tool,
-        expected_courses
+        self, working_course_search_tool, expected_courses
     ):
         """
         Test that sources include lesson links when available.
@@ -261,9 +217,7 @@ class TestCourseSearchToolSourceTracking:
         """
         course_title = expected_courses["building_computer_use"]["title"]
         result = working_course_search_tool.execute(
-            query="introduction",
-            course_name=course_title,
-            lesson_number=0
+            query="introduction", course_name=course_title, lesson_number=0
         )
 
         sources = working_course_search_tool.last_sources
@@ -308,10 +262,7 @@ class TestCourseSearchToolDefinition:
 class TestCourseSearchToolErrorHandling:
     """Test tool error handling and edge cases."""
 
-    def test_working_tool_handles_empty_query(
-        self,
-        working_course_search_tool
-    ):
+    def test_working_tool_handles_empty_query(self, working_course_search_tool):
         """
         Test tool behavior with empty query string.
 

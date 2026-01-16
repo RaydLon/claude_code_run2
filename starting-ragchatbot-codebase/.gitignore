@@ -29,3 +29,10 @@ uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# Code quality tools
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage

@@ -10,7 +10,7 @@ Test Strategy:
 """
 
 import pytest
-from vector_store import VectorStore, SearchResults
+from vector_store import SearchResults
 
 
 class TestVectorStoreBasicSearch:
@@ -36,7 +36,6 @@ class TestVectorStoreBasicSearch:
         assert len(results.documents) == 0
         assert len(results.metadata) == 0
 
-
     def test_working_search_returns_results(self, working_vector_store, sample_queries):
         """
         DEMONSTRATES THE FIX: Search with MAX_RESULTS=5 returns results.
@@ -51,27 +50,24 @@ class TestVectorStoreBasicSearch:
         results = working_vector_store.search(query)
 
         # After fix: Should return results
-        assert not results.is_empty(), (
-            "Expected results with MAX_RESULTS=5, but got empty results"
-        )
+        assert not results.is_empty(), "Expected results with MAX_RESULTS=5, but got empty results"
         assert len(results.documents) > 0, "Should return at least one result"
         assert len(results.documents) <= 5, "Should not exceed MAX_RESULTS"
         assert len(results.documents) == len(results.metadata)
         assert len(results.documents) == len(results.distances)
 
-
-    @pytest.mark.parametrize("query_key", [
-        "general_content",
-        "specific_topic",
-        "technical_term",
-        "course_specific",
-        "lesson_specific"
-    ])
+    @pytest.mark.parametrize(
+        "query_key",
+        [
+            "general_content",
+            "specific_topic",
+            "technical_term",
+            "course_specific",
+            "lesson_specific",
+        ],
+    )
     def test_multiple_queries_with_working_config(
-        self,
-        working_vector_store,
-        sample_queries,
-        query_key
+        self, working_vector_store, sample_queries, query_key
     ):
         """
         Test that various query types return results with working config.
@@ -85,9 +81,7 @@ class TestVectorStoreBasicSearch:
         query = sample_queries[query_key]
         results = working_vector_store.search(query)
 
-        assert not results.is_empty(), (
-            f"Query '{query}' should return results with MAX_RESULTS=5"
-        )
+        assert not results.is_empty(), f"Query '{query}' should return results with MAX_RESULTS=5"
         assert len(results.documents) > 0
 
         # Validate result structure
@@ -103,9 +97,7 @@ class TestVectorStoreWithFilters:
     """Test search with course name and lesson number filters."""
 
     def test_buggy_search_with_course_filter_returns_empty(
-        self,
-        buggy_vector_store,
-        expected_courses
+        self, buggy_vector_store, expected_courses
     ):
         """
         Bug demonstration: Course-filtered search returns empty with MAX_RESULTS=0.
@@ -113,18 +105,12 @@ class TestVectorStoreWithFilters:
         Expected: PASSES with current config (returns 0 results)
         """
         course_title = expected_courses["building_computer_use"]["title"]
-        results = buggy_vector_store.search(
-            query="computer use",
-            course_name=course_title
-        )
+        results = buggy_vector_store.search(query="computer use", course_name=course_title)
 
         assert results.is_empty(), "Expected empty results with MAX_RESULTS=0"
 
-
     def test_working_search_with_course_filter_returns_results(
-        self,
-        working_vector_store,
-        expected_courses
+        self, working_vector_store, expected_courses
     ):
         """
         Fix demonstration: Course-filtered search returns results with MAX_RESULTS=5.
@@ -133,10 +119,7 @@ class TestVectorStoreWithFilters:
         Expected: PASSES after fix
         """
         course_title = expected_courses["building_computer_use"]["title"]
-        results = working_vector_store.search(
-            query="computer use",
-            course_name=course_title
-        )
+        results = working_vector_store.search(query="computer use", course_name=course_title)
 
         assert not results.is_empty(), "Should return results with MAX_RESULTS=5"
 
@@ -144,12 +127,7 @@ class TestVectorStoreWithFilters:
         for meta in results.metadata:
             assert meta["course_title"] == course_title
 
-
-    def test_working_search_with_lesson_filter(
-        self,
-        working_vector_store,
-        expected_courses
-    ):
+    def test_working_search_with_lesson_filter(self, working_vector_store, expected_courses):
         """
         Test search filtered by lesson number with working config.
 
@@ -158,9 +136,7 @@ class TestVectorStoreWithFilters:
         """
         course_title = expected_courses["building_computer_use"]["title"]
         results = working_vector_store.search(
-            query="introduction",
-            course_name=course_title,
-            lesson_number=0
+            query="introduction", course_name=course_title, lesson_number=0
         )
 
         assert not results.is_empty(), "Should find lesson 0 content"
@@ -170,11 +146,7 @@ class TestVectorStoreWithFilters:
             assert meta["course_title"] == course_title
             assert meta["lesson_number"] == 0
 
-
-    def test_working_search_with_nonexistent_course_returns_error(
-        self,
-        working_vector_store
-    ):
+    def test_working_search_with_nonexistent_course_returns_error(self, working_vector_store):
         """
         Test that searching for non-existent course returns appropriate error.
 
@@ -183,8 +155,7 @@ class TestVectorStoreWithFilters:
         Expected: PASSES with both configs
         """
         results = working_vector_store.search(
-            query="test query",
-            course_name="Nonexistent Course Title That Does Not Exist"
+            query="test query", course_name="Nonexistent Course Title That Does Not Exist"
         )
 
         assert results.error is not None, "Should return error for missing course"
@@ -201,14 +172,10 @@ class TestVectorStoreSearchLimit:
         Expected: PASSES with current config
         """
         # Try to override with explicit limit
-        results = buggy_vector_store.search(
-            query="computer use",
-            limit=3
-        )
+        results = buggy_vector_store.search(query="computer use", limit=3)
 
         # Bug: Still returns 0 because max_results is used as fallback
         assert results.is_empty(), "Bug causes empty results despite explicit limit"
-
 
     def test_working_config_respects_explicit_limit(self, working_vector_store):
         """
@@ -217,15 +184,11 @@ class TestVectorStoreSearchLimit:
         Expected: FAILS with buggy config
         Expected: PASSES with working config
         """
-        results = working_vector_store.search(
-            query="computer use",
-            limit=3
-        )
+        results = working_vector_store.search(query="computer use", limit=3)
 
         assert not results.is_empty(), "Should return results"
         assert len(results.documents) <= 3, "Should respect explicit limit of 3"
         assert len(results.documents) > 0, "Should return at least one result"
-
 
     def test_working_config_uses_max_results_as_default(self, working_vector_store):
         """
@@ -244,9 +207,7 @@ class TestVectorStoreCourseNameResolution:
     """Test semantic course name matching functionality."""
 
     def test_fuzzy_course_name_matching_works_with_working_config(
-        self,
-        working_vector_store,
-        course_name_variations
+        self, working_vector_store, course_name_variations
     ):
         """
         Test that fuzzy course name matching works with various inputs.
@@ -258,15 +219,10 @@ class TestVectorStoreCourseNameResolution:
         Expected: PASSES with working config
         """
         for partial_name, expected_title in course_name_variations.items():
-            results = working_vector_store.search(
-                query="introduction",
-                course_name=partial_name
-            )
+            results = working_vector_store.search(query="introduction", course_name=partial_name)
 
             # Should resolve partial name and return results
-            assert not results.is_empty(), (
-                f"Should resolve '{partial_name}' to '{expected_title}'"
-            )
+            assert not results.is_empty(), f"Should resolve '{partial_name}' to '{expected_title}'"
 
             # Verify results are from expected course
             for meta in results.metadata:
@@ -302,7 +258,6 @@ class TestVectorStoreResultStructure:
             assert isinstance(meta["course_title"], str)
             assert isinstance(meta["chunk_index"], int)
 
-
     def test_empty_results_have_no_error(self, working_vector_store):
         """
         Test that genuinely empty results (no matches) have no error.
@@ -310,9 +265,7 @@ class TestVectorStoreResultStructure:
         Expected: PASSES with both configs
         """
         # Search for something that definitely won't match
-        results = working_vector_store.search(
-            "xyzabc123nonexistentquery999"
-        )
+        results = working_vector_store.search("xyzabc123nonexistentquery999")
 
         # May be empty but shouldn't have error (just no matches)
         if results.is_empty():

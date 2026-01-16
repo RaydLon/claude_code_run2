@@ -39,9 +39,95 @@ uv run python script_name.py
 
 ### Development Notes
 - **Always use `uv run` to execute Python commands** - this ensures correct dependencies and environment
-- No test suite exists in this codebase
+- Tests are in `backend/tests/` - run with `./scripts/test.sh` or `uv run pytest`
 - ChromaDB data persists in `./chroma_db/` directory
 - Sessions are in-memory only (lost on server restart)
+
+## Code Quality Tools
+
+This project uses modern Python code quality tools to maintain consistent formatting and catch potential issues.
+
+### Setup
+
+Install development dependencies:
+```bash
+uv sync --extra dev
+```
+
+This installs:
+- **Black** (v24.1.1+): Automatic code formatter
+- **Ruff** (v0.1.14+): Fast linter and import sorter
+- **mypy** (v1.8.0+): Static type checker
+- **pytest** (v8.0.0+): Testing framework
+- **pytest-cov** (v4.1.0+): Coverage reporting
+- **pre-commit** (v3.6.0+): Git hook automation (optional)
+
+### Available Scripts
+
+All scripts are in the `scripts/` directory and use `uv run` internally:
+
+```bash
+# Format code with Black
+./scripts/format.sh
+
+# Run Ruff linter with auto-fix
+./scripts/lint.sh
+
+# Run mypy type checker
+./scripts/typecheck.sh
+
+# Run tests with coverage
+./scripts/test.sh
+
+# Run all quality checks (format → lint → typecheck → test)
+./scripts/quality.sh
+```
+
+### Development Workflow
+
+**Before committing code:**
+```bash
+./scripts/quality.sh
+```
+
+This runs all checks in sequence and ensures code quality standards are met.
+
+**Individual tools:**
+```bash
+# Format only
+./scripts/format.sh
+
+# Check types only
+./scripts/typecheck.sh
+
+# Run specific tests
+uv run pytest backend/tests/test_specific.py -v
+```
+
+### Tool Configurations
+
+All tools are configured in `pyproject.toml`:
+
+- **Black**: 100 char line length, Python 3.13+ target
+- **Ruff**: Enforces pycodestyle, pyflakes, isort, naming conventions, pyupgrade, bugbear rules
+- **mypy**: Lenient initial config (progressive improvement approach)
+- **pytest**: Auto-runs coverage with HTML reports
+
+### Coverage Reports
+
+After running tests, view coverage report:
+```bash
+open htmlcov/index.html
+```
+
+### Optional: Pre-commit Hooks
+
+To automatically run quality checks before each commit:
+```bash
+uv run pre-commit install
+```
+
+This is optional but recommended for contributors.
 
 ## Architecture
 

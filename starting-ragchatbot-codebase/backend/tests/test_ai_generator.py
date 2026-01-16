@@ -14,22 +14,22 @@ Test Strategy:
 - Verify correct message passing between Claude and tools
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
 from ai_generator import AIGenerator
 
 
 class TestAIGeneratorBasicToolCalling:
     """Test basic tool calling workflow."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_ai_generator_detects_tool_use(
         self,
         mock_anthropic_class,
         working_config,
         mock_tool_use_response,
         mock_final_response_after_tool,
-        tool_manager_with_working_tool
+        tool_manager_with_working_tool,
     ):
         """
         Test that AIGenerator correctly detects when Claude wants to use a tool.
@@ -49,13 +49,12 @@ class TestAIGeneratorBasicToolCalling:
         # Second call: Claude synthesizes final response
         mock_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response_after_tool
+            mock_final_response_after_tool,
         ]
 
         # Create AI generator
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client  # Use mock
 
@@ -63,7 +62,7 @@ class TestAIGeneratorBasicToolCalling:
         response = ai_gen.generate_response(
             query="What is computer use?",
             tools=tool_manager_with_working_tool.get_tool_definitions(),
-            tool_manager=tool_manager_with_working_tool
+            tool_manager=tool_manager_with_working_tool,
         )
 
         # Should have made two API calls
@@ -72,15 +71,14 @@ class TestAIGeneratorBasicToolCalling:
         # Should return final synthesized response
         assert "computer" in response.lower()
 
-
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_buggy_tool_execution_returns_empty_to_claude(
         self,
         mock_anthropic_class,
         working_config,
         mock_tool_use_response,
         mock_final_response_after_tool,
-        tool_manager_with_buggy_tool
+        tool_manager_with_buggy_tool,
     ):
         """
         Test that buggy tool (MAX_RESULTS=0) passes "No relevant content found" to Claude.
@@ -95,13 +93,12 @@ class TestAIGeneratorBasicToolCalling:
         mock_anthropic_class.return_value = mock_client
         mock_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response_after_tool
+            mock_final_response_after_tool,
         ]
 
         # Create AI generator
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
@@ -109,7 +106,7 @@ class TestAIGeneratorBasicToolCalling:
         response = ai_gen.generate_response(
             query="What is computer use?",
             tools=tool_manager_with_buggy_tool.get_tool_definitions(),
-            tool_manager=tool_manager_with_buggy_tool
+            tool_manager=tool_manager_with_buggy_tool,
         )
 
         # Check that second API call received "No relevant content found"
@@ -118,33 +115,35 @@ class TestAIGeneratorBasicToolCalling:
 
         # Find tool_result message (content must be a list)
         tool_result_msg = next(
-            msg for msg in messages if msg["role"] == "user" and
-            isinstance(msg["content"], list) and
-            any(c["type"] == "tool_result" for c in msg["content"])
+            msg
+            for msg in messages
+            if msg["role"] == "user"
+            and isinstance(msg["content"], list)
+            and any(c["type"] == "tool_result" for c in msg["content"])
         )
 
         # Extract tool result content
-        tool_result = next(
-            c for c in tool_result_msg["content"] if c["type"] == "tool_result"
-        )
+        tool_result = next(c for c in tool_result_msg["content"] if c["type"] == "tool_result")
 
         # Bug: Tool result contains error message about MAX_RESULTS=0
-        assert ("No relevant content found" in tool_result["content"] or
-                "Search error" in tool_result["content"] or
-                "cannot be negative, or zero" in tool_result["content"])
+        assert (
+            "No relevant content found" in tool_result["content"]
+            or "Search error" in tool_result["content"]
+            or "cannot be negative, or zero" in tool_result["content"]
+        )
 
 
 class TestAIGeneratorToolExecutionWorkflow:
     """Test the complete tool execution workflow."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_working_tool_execution_passes_results_to_claude(
         self,
         mock_anthropic_class,
         working_config,
         mock_tool_use_response,
         mock_final_response_after_tool,
-        tool_manager_with_working_tool
+        tool_manager_with_working_tool,
     ):
         """
         Test that working tool results are correctly passed to Claude.
@@ -157,13 +156,12 @@ class TestAIGeneratorToolExecutionWorkflow:
         mock_anthropic_class.return_value = mock_client
         mock_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response_after_tool
+            mock_final_response_after_tool,
         ]
 
         # Create AI generator
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
@@ -171,7 +169,7 @@ class TestAIGeneratorToolExecutionWorkflow:
         response = ai_gen.generate_response(
             query="What is computer use?",
             tools=tool_manager_with_working_tool.get_tool_definitions(),
-            tool_manager=tool_manager_with_working_tool
+            tool_manager=tool_manager_with_working_tool,
         )
 
         # Verify second API call structure
@@ -188,21 +186,18 @@ class TestAIGeneratorToolExecutionWorkflow:
         assert messages[2]["role"] == "user"
 
         # Tool result should contain actual content (not error)
-        tool_result = next(
-            c for c in messages[2]["content"] if c["type"] == "tool_result"
-        )
+        tool_result = next(c for c in messages[2]["content"] if c["type"] == "tool_result")
         assert "No relevant content found" not in tool_result["content"]
         assert len(tool_result["content"]) > 0
 
-
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_tool_use_id_correctly_passed_back(
         self,
         mock_anthropic_class,
         working_config,
         mock_tool_use_response,
         mock_final_response_after_tool,
-        tool_manager_with_working_tool
+        tool_manager_with_working_tool,
     ):
         """
         Test that tool_use_id is correctly matched in tool_result.
@@ -216,12 +211,11 @@ class TestAIGeneratorToolExecutionWorkflow:
         mock_anthropic_class.return_value = mock_client
         mock_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response_after_tool
+            mock_final_response_after_tool,
         ]
 
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
@@ -229,7 +223,7 @@ class TestAIGeneratorToolExecutionWorkflow:
         response = ai_gen.generate_response(
             query="What is computer use?",
             tools=tool_manager_with_working_tool.get_tool_definitions(),
-            tool_manager=tool_manager_with_working_tool
+            tool_manager=tool_manager_with_working_tool,
         )
 
         # Extract tool_use_id from first response
@@ -238,9 +232,7 @@ class TestAIGeneratorToolExecutionWorkflow:
         # Extract tool_result from second call
         second_call_args = mock_client.messages.create.call_args_list[1]
         messages = second_call_args[1]["messages"]
-        tool_result = next(
-            c for c in messages[2]["content"] if c["type"] == "tool_result"
-        )
+        tool_result = next(c for c in messages[2]["content"] if c["type"] == "tool_result")
 
         # IDs should match
         assert tool_result["tool_use_id"] == tool_use_id
@@ -249,12 +241,9 @@ class TestAIGeneratorToolExecutionWorkflow:
 class TestAIGeneratorWithoutTools:
     """Test AI generator behavior when no tools are provided."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_direct_response_without_tools(
-        self,
-        mock_anthropic_class,
-        working_config,
-        mock_text_response
+        self, mock_anthropic_class, working_config, mock_text_response
     ):
         """
         Test that AI generator works correctly without tools.
@@ -269,17 +258,12 @@ class TestAIGeneratorWithoutTools:
         mock_client.messages.create.return_value = mock_text_response
 
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
         # Generate response without tools
-        response = ai_gen.generate_response(
-            query="What is 2+2?",
-            tools=None,
-            tool_manager=None
-        )
+        response = ai_gen.generate_response(query="What is 2+2?", tools=None, tool_manager=None)
 
         # Should make only one API call
         assert mock_client.messages.create.call_count == 1
@@ -291,12 +275,9 @@ class TestAIGeneratorWithoutTools:
 class TestAIGeneratorConversationHistory:
     """Test that conversation history is correctly passed to Claude."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_conversation_history_included_in_system_prompt(
-        self,
-        mock_anthropic_class,
-        working_config,
-        mock_text_response
+        self, mock_anthropic_class, working_config, mock_text_response
     ):
         """
         Test that conversation history is added to system prompt.
@@ -309,18 +290,14 @@ class TestAIGeneratorConversationHistory:
         mock_client.messages.create.return_value = mock_text_response
 
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
         # Generate response with history
         history = "User: Previous question\nAssistant: Previous answer"
         response = ai_gen.generate_response(
-            query="New question",
-            conversation_history=history,
-            tools=None,
-            tool_manager=None
+            query="New question", conversation_history=history, tools=None, tool_manager=None
         )
 
         # Check that history was included in system prompt
@@ -335,14 +312,14 @@ class TestAIGeneratorConversationHistory:
 class TestAIGeneratorSequentialToolCalling:
     """Test sequential tool calling with up to 2 rounds."""
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_single_tool_call_completes_naturally(
         self,
         mock_anthropic_class,
         working_config,
         mock_tool_use_response,
         mock_final_response_after_tool,
-        tool_manager_with_working_tool
+        tool_manager_with_working_tool,
     ):
         """
         Test backward compatibility: single tool call still works.
@@ -359,31 +336,27 @@ class TestAIGeneratorSequentialToolCalling:
         # API responses: tool use, then final text
         mock_client.messages.create.side_effect = [
             mock_tool_use_response,
-            mock_final_response_after_tool
+            mock_final_response_after_tool,
         ]
 
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
         response = ai_gen.generate_response(
             query="What is computer use?",
             tools=tool_manager_with_working_tool.get_tool_definitions(),
-            tool_manager=tool_manager_with_working_tool
+            tool_manager=tool_manager_with_working_tool,
         )
 
         # Verify behavior
         assert mock_client.messages.create.call_count == 2
         assert "computer" in response.lower()
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_two_sequential_tool_calls(
-        self,
-        mock_anthropic_class,
-        working_config,
-        tool_manager_with_working_tool
+        self, mock_anthropic_class, working_config, tool_manager_with_working_tool
     ):
         """
         Test two sequential tool calls in separate rounds.
@@ -430,19 +403,18 @@ class TestAIGeneratorSequentialToolCalling:
         mock_client.messages.create.side_effect = [
             first_tool_response,
             second_tool_response,
-            final_text_response
+            final_text_response,
         ]
 
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
         response = ai_gen.generate_response(
             query="Compare lesson 1 and lesson 2",
             tools=tool_manager_with_working_tool.get_tool_definitions(),
-            tool_manager=tool_manager_with_working_tool
+            tool_manager=tool_manager_with_working_tool,
         )
 
         # Verify 3 API calls made (2 tool rounds + 1 final)
@@ -462,12 +434,9 @@ class TestAIGeneratorSequentialToolCalling:
         third_call_kwargs = mock_client.messages.create.call_args_list[2][1]
         assert "tools" not in third_call_kwargs
 
-    @patch('ai_generator.anthropic.Anthropic')
+    @patch("ai_generator.anthropic.Anthropic")
     def test_max_rounds_enforced_after_two_tool_calls(
-        self,
-        mock_anthropic_class,
-        working_config,
-        tool_manager_with_working_tool
+        self, mock_anthropic_class, working_config, tool_manager_with_working_tool
     ):
         """
         Test that after 2 rounds, tools are removed to force final response.
@@ -501,19 +470,18 @@ class TestAIGeneratorSequentialToolCalling:
         mock_client.messages.create.side_effect = [
             infinite_tool_response,  # Round 1
             infinite_tool_response,  # Round 2
-            final_response           # Forced final (no tools)
+            final_response,  # Forced final (no tools)
         ]
 
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
         response = ai_gen.generate_response(
             query="Test infinite loop prevention",
             tools=tool_manager_with_working_tool.get_tool_definitions(),
-            tool_manager=tool_manager_with_working_tool
+            tool_manager=tool_manager_with_working_tool,
         )
 
         # Should make exactly 3 API calls
@@ -532,12 +500,8 @@ class TestAIGeneratorSequentialToolCalling:
 
         assert response == "Final answer"
 
-    @patch('ai_generator.anthropic.Anthropic')
-    def test_tool_execution_error_handled_gracefully(
-        self,
-        mock_anthropic_class,
-        working_config
-    ):
+    @patch("ai_generator.anthropic.Anthropic")
+    def test_tool_execution_error_handled_gracefully(self, mock_anthropic_class, working_config):
         """
         Test that tool execution errors are passed to Claude as error results.
 
@@ -568,10 +532,7 @@ class TestAIGeneratorSequentialToolCalling:
         text_block.text = "I encountered an error retrieving that information"
         final_response.content = [text_block]
 
-        mock_client.messages.create.side_effect = [
-            tool_use_response,
-            final_response
-        ]
+        mock_client.messages.create.side_effect = [tool_use_response, final_response]
 
         # Create tool manager that raises exception
         failing_tool_manager = Mock()
@@ -579,15 +540,12 @@ class TestAIGeneratorSequentialToolCalling:
         failing_tool_manager.execute_tool.side_effect = Exception("Database connection failed")
 
         ai_gen = AIGenerator(
-            api_key=working_config.ANTHROPIC_API_KEY,
-            model=working_config.ANTHROPIC_MODEL
+            api_key=working_config.ANTHROPIC_API_KEY, model=working_config.ANTHROPIC_MODEL
         )
         ai_gen.client = mock_client
 
         response = ai_gen.generate_response(
-            query="Test error handling",
-            tools=[],
-            tool_manager=failing_tool_manager
+            query="Test error handling", tools=[], tool_manager=failing_tool_manager
         )
 
         # Should still get a response
