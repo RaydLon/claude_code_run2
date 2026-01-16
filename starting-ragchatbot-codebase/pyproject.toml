@@ -13,3 +13,39 @@ dependencies = [
     "python-multipart==0.0.20",
     "python-dotenv==1.1.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.27.0",  # Required for FastAPI TestClient
+]
+
+[tool.pytest.ini_options]
+# Test discovery
+testpaths = ["backend/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Output options
+addopts = [
+    "-v",                    # Verbose output
+    "--strict-markers",      # Strict marker enforcement
+    "--tb=short",           # Shorter traceback format
+    "--disable-warnings",   # Suppress warnings for cleaner output
+    "-ra",                  # Show summary of all test outcomes
+]
+
+# Markers for test categorization
+markers = [
+    "unit: Unit tests for individual components",
+    "integration: Integration tests across components",
+    "api: API endpoint tests",
+    "slow: Tests that take significant time to run",
+]
+
+# Coverage options (if pytest-cov is installed)
+# Uncomment these if you add pytest-cov to dependencies
+# [tool.coverage.run]
+# source = ["backend"]
+# omit = ["*/tests/*", "*/conftest.py"]

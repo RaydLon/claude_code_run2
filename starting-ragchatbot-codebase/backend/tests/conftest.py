@@ -6,14 +6,17 @@ This module provides:
 - VectorStore instances using both configs with real ChromaDB
 - Sample test queries and expected course data
 - Mock objects for Anthropic API responses
+- FastAPI test client and app fixtures for API endpoint testing
 """
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+from fastapi.testclient import TestClient
 from config import Config
 from vector_store import VectorStore
 from search_tools import CourseSearchTool, CourseOutlineTool, ToolManager
 from ai_generator import AIGenerator
+from rag_system import RAGSystem
 
 
 # ============================================================================
@@ -363,3 +366,157 @@ def mock_comparison_final_response():
 
     mock_response.content = [text_block]
     return mock_response
+
+
+# ============================================================================
+# FastAPI Test Client Fixtures
+# ============================================================================
+
+@pytest.fixture
+def test_app(working_config):
+    """
+    Create a test FastAPI app without static file mounting.
+
+    This avoids issues with missing frontend directory during tests.
+    The app includes all API endpoints but no static file serving.
+
+    Returns:
+        FastAPI: Test application instance
+    """
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.middleware.trustedhost import TrustedHostMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional
+
+    # Define Pydantic models inline
+    class QueryRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    class Source(BaseModel):
+        text: str
+        url: Optional[str] = None
+
+    class QueryResponse(BaseModel):
+        answer: str
+        sources: List[Source]
+        session_id: str
+
+    class CourseStats(BaseModel):
+        total_courses: int
+        course_titles: List[str]
+
+    # Create test app
+    app = FastAPI(title="Course Materials RAG System - Test", root_path="")
+
+    # Add middleware
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"]
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+
+    # Initialize RAG system
+    rag_system = RAGSystem(working_config)
+
+    # Define API endpoints
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        """Process a query and return response with sources"""
+        try:
+            # Create session if not provided
+            session_id = request.session_id
+            if not session_id:
+                session_id = rag_system.session_manager.create_session()
+
+            # Process query using RAG system
+            answer, sources = rag_system.query(request.query, session_id)
+
+            return QueryResponse(
+                answer=answer,
+                sources=sources,
+                session_id=session_id
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        """Get course analytics and statistics"""
+        try:
+            analytics = rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"]
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # Store rag_system as app state for test access
+    app.state.rag_system = rag_system
+
+    return app
+
+
+@pytest.fixture
+def test_client(test_app):
+    """
+    Create a test client for the FastAPI app.
+
+    Uses FastAPI's TestClient which is based on requests library.
+    Allows making HTTP requests to the app without running a server.
+
+    Returns:
+        TestClient: Client for making test requests
+    """
+    return TestClient(test_app)
+
+
+@pytest.fixture
+def mock_rag_query_response():
+    """
+    Mock response from RAGSystem.query() for API testing.
+
+    Simulates a successful query with answer and sources.
+
+    Returns:
+        tuple: (answer, sources) matching RAGSystem.query() return format
+    """
+    answer = "This is a test answer from the RAG system."
+    sources = [
+        {
+            "text": "Source 1: Course content excerpt",
+            "url": "http://example.com/course1"
+        },
+        {
+            "text": "Source 2: Another course excerpt",
+            "url": None
+        }
+    ]
+    return (answer, sources)
+
+
+@pytest.fixture
+def mock_course_analytics():
+    """
+    Mock response from RAGSystem.get_course_analytics().
+
+    Returns:
+        dict: Course analytics with total_courses and course_titles
+    """
+    return {
+        "total_courses": 2,
+        "course_titles": [
+            "Building Towards Computer Use with Anthropic",
+            "Prompt Engineering Fundamentals"
+        ]
+    }
