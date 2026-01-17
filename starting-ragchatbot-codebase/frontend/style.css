@@ -103,13 +103,13 @@ body {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* Dark theme: show moon, hide sun */
-:root .theme-toggle .moon-icon {
+/* Dark theme (default): show moon, hide sun */
+.theme-toggle .moon-icon {
     opacity: 1;
     transform: rotate(0deg);
 }
 
-:root .theme-toggle .sun-icon {
+.theme-toggle .sun-icon {
     opacity: 0;
     transform: rotate(180deg);
 }
